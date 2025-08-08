@@ -1,36 +1,25 @@
-//
-//  RemoteViewController.swift
-//  LoopFollow
-//
-//  Created by Jonas Björkert on 2024-07-19.
-//  Copyright © 2024 Jon Fawcett. All rights reserved.
-//
+// LoopFollow
+// RemoteViewController.swift
+// Created by Jonas Björkert.
 
-import Foundation
-import UIKit
-import SwiftUI
-import HealthKit
 import Combine
+import SwiftUI
+import UIKit
 
 class RemoteViewController: UIViewController {
-
     private var cancellable: AnyCancellable?
     private var hostingController: UIHostingController<AnyView>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        cancellable = Publishers.CombineLatest(
-            Storage.shared.remoteType.$value,
-            ObservableUserDefaults.shared.device.$value
-        )
-        .sink { [weak self] newRemoteType, newDevice in
-            DispatchQueue.main.async {
-                self?.updateView()
+        cancellable = Storage.shared.device.$value
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateView()
+                }
             }
-        }
-
-        updateView()
     }
 
     private func updateView() {
@@ -45,7 +34,7 @@ class RemoteViewController: UIViewController {
         if remoteType == .nightscout {
             var remoteView: AnyView
 
-            switch ObservableUserDefaults.shared.device.value {
+            switch Storage.shared.device.value {
             case "Trio":
                 remoteView = AnyView(TrioNightscoutRemoteView())
             case "Loop":
@@ -56,7 +45,7 @@ class RemoteViewController: UIViewController {
 
             hostingController = UIHostingController(rootView: remoteView)
         } else if remoteType == .trc {
-            if ObservableUserDefaults.shared.device.value != "Trio" {
+            if Storage.shared.device.value != "Trio" {
                 hostingController = UIHostingController(
                     rootView: AnyView(
                         Text("Trio Remote Control is only supported for 'Trio'")
@@ -80,20 +69,25 @@ class RemoteViewController: UIViewController {
                 hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-                hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+                hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             ])
 
             hostingController.didMove(toParent: self)
         }
 
-        if remoteType == .nightscout, !ObservableUserDefaults.shared.nsWriteAuth.value {
-            NightscoutUtils.verifyURLAndToken { error, jwtToken, nsWriteAuth, nsAdminAuth in
+        if remoteType == .nightscout, !Storage.shared.nsWriteAuth.value {
+            NightscoutUtils.verifyURLAndToken { _, _, nsWriteAuth, nsAdminAuth in
                 DispatchQueue.main.async {
-                    ObservableUserDefaults.shared.nsWriteAuth.value = nsWriteAuth
-                    ObservableUserDefaults.shared.nsAdminAuth.value = nsAdminAuth
+                    Storage.shared.nsWriteAuth.value = nsWriteAuth
+                    Storage.shared.nsAdminAuth.value = nsAdminAuth
                 }
             }
         }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateView()
     }
 
     deinit {
