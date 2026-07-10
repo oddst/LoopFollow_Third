@@ -1,6 +1,5 @@
 // LoopFollow
 // DeviceStatusOpenAPS.swift
-// Created by Jonas Björkert.
 
 import Foundation
 import HealthKit
@@ -115,14 +114,6 @@ extension MainViewController {
                 } else {
                     print("COB pattern not found in reason string.")
                 }
-            }
-
-            // Insulin Required
-            if let insulinReqMetric = InsulinMetric(from: enactedOrSuggested, key: "insulinReq") {
-                infoManager.updateInfoData(type: .recBolus, value: insulinReqMetric)
-                Observable.shared.deviceRecBolus.value = insulinReqMetric.value
-            } else {
-                Observable.shared.deviceRecBolus.value = 0
             }
 
             // Autosens

@@ -1,6 +1,5 @@
 // LoopFollow
 // BuildDetails.swift
-// Created by Jonas Björkert.
 
 import Foundation
 
@@ -18,6 +17,10 @@ class BuildDetails {
             return
         }
         dict = parsed
+    }
+
+    var teamID: String? {
+        dict["com-LoopFollow-development-team"] as? String
     }
 
     var buildDateString: String? {
